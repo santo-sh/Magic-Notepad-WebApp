@@ -12,27 +12,20 @@ mongoose.connect("mongodb://localhost:27017/magicNotes", {
     useUnifiedTopology: true
 });
 
-const noteSchema = {
+const noteSchema = new mongoose.Schema({
     note: String,
-}
+});
 const Note = mongoose.model("Note", noteSchema);
 const defaultNote = new Note({
     note: "Go to School",
 });
-app.get('/', (req, res) => {
-    Note.find({}, (err, result) => {
-        if (err) {
-            console.log(err);
-        } else {
-            console.log(result);
-            res.render('main', { result: result });
-        }
-    })
-});
-
-app.get('/:customLocation', (req, res) => {
-    console.log(customLocation);
-    res.redirect('/');
+app.get('/', async(req, res) => {
+    try{
+        const result = await Note.find();
+        return res.render('main', { result });
+    }catch(e){
+        return res.status(200).send({message: e.message || 'Something went wrong!'});
+    }
 });
 
 app.post('/', (req, res) => {
@@ -47,17 +40,28 @@ app.post('/', (req, res) => {
     res.redirect("/");
 });
 
-app.post('/delete', (req, res) => {
+app.post('/delete', async(req, res) => {
     console.log(req.body);
-    Note.findByIdAndDelete(req.body.submit, (err, result) => {
-        if (err) {
-            console.log(err);
-        } else {
-            console.log("Deleted Successfully!!");
-            res.redirect("/");
+    try{
+        const response = await Note.findByIdAndDelete(req.body.submit);
+        console.log(response);
+        if(!response){
+            return res.status(200).send({message: 'Nothing to delete'});
         }
-    });
+        console.log("Deleted Successfully!");
+        return res.status(200).redirect('/');
+    }catch(e){
+        console.log(e);
+        return res.status(200).send({message: e.message});
+    }
 });
+
+
+app.get('/:customLocation', (req, res) => {
+    console.log(req.params.customLocation);
+    res.redirect('/');
+});
+
 
 let port = process.env.PORT;
 if (port == null || port == "") {
@@ -66,5 +70,5 @@ if (port == null || port == "") {
 
 
 app.listen(port, () => {
-    console.log("Port is listening at port");
+    console.log(`Port is listening at ${port}`);
 });
